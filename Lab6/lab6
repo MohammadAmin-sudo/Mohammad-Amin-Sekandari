@@ -3,7 +3,7 @@
 **Student Name:** Mohammad Amin  
 **Father's Name:** Mohammad Rahim
 
-**Project:** IT Student Portal  
+**Project:** IT Student Portal
 **Framework:** Laravel 12  
 **Language:** PHP, Blade, HTML  
 **Database:** MySQL
@@ -422,50 +422,4 @@ Father's Name: Mohammad Rahim
 
 **Answer:** The `@csrf` directive adds a CSRF security token to the form. Laravel validates the token when the form is submitted to help prevent cross-site request forgery attacks.
 
-## 11. Testing Checklist
 
-- [ ] Open `/dashboard` while logged out and verify the redirect to login.
-- [ ] Register a new user with valid details.
-- [ ] Try registering with an existing email address.
-- [ ] Try a password shorter than eight characters.
-- [ ] Try mismatched password and confirmation fields.
-- [ ] Log in with the correct email and password.
-- [ ] Try logging in with an incorrect password.
-- [ ] Verify the dashboard displays the logged-in user's name and email.
-- [ ] Log out and try opening `/dashboard` again.
-- [ ] Verify that a logged-in user cannot access the guest-only login or registration pages.
-```
-
-## 12. Run the Project
-
-Start MySQL in XAMPP or your installed MySQL service, and make sure the `it_auth_lab` database exists. Then run these commands from the folder containing the `artisan` file:
-
-```bash
-php artisan config:clear
-php artisan migrate
-php artisan route:list
-php artisan serve
-```
-
-Open this address in your browser:
-
-```text
-http://127.0.0.1:8000
-```
-
-## 13. Upload the Project to GitHub
-
-Create a repository named `laravel-it-student-portal` at https://github.com/new. Then run these commands from your project folder:
-
-```bash
-git init
-git add .
-git commit -m "Complete Laravel authentication lab"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/laravel-it-student-portal.git
-git push -u origin main
-```
-
-Replace `YOUR-USERNAME` with your GitHub username. If you already have a remote named `origin`, check it with `git remote -v` instead of adding it again.
-
-**Important:** Never upload `.env`, passwords, or private keys to GitHub. This code is intended to be placed inside an existing Laravel 12 installation; it is not a replacement for the entire Laravel framework or its dependencies.
