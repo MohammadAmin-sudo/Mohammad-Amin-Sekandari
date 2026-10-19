@@ -1,0 +1,471 @@
+# Laravel 12 Authentication Lab — IT Student Portal
+
+**Student Name:** Mohammad Amin  
+**Father's Name:** Mohammad Rahim
+
+**Project:** IT Student Portal  
+**Framework:** Laravel 12  
+**Language:** PHP, Blade, HTML  
+**Database:** MySQL
+
+---
+
+## 1. Project Structure
+
+```text
+it-auth-lab/
+├── app/
+│   └── Http/
+│       └── Controllers/
+│           └── AuthController.php
+├── resources/
+│   └── views/
+│       ├── auth/
+│       │   ├── register.blade.php
+│       │   └── login.blade.php
+│       └── dashboard.blade.php
+├── routes/
+│   └── web.php
+├── .env
+├── .gitignore
+└── README.md
+```
+
+## 2. routes/web.php
+
+```php
+<?php
+
+use App\Http\Controllers\AuthController;
+use Illuminate\Support\Facades\Route;
+
+Route::redirect('/', '/login');
+
+Route::middleware('guest')->group(function () {
+    Route::view('/register', 'auth.register')->name('register');
+
+    Route::post('/register', [AuthController::class, 'register'])
+        ->name('register.store');
+
+    Route::view('/login', 'auth.login')->name('login');
+
+    Route::post('/login', [AuthController::class, 'login'])
+        ->name('login.store');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->name('dashboard');
+
+    Route::post('/logout', [AuthController::class, 'logout'])
+        ->name('logout');
+});
+```
+
+## 3. app/Http/Controllers/AuthController.php
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+
+class AuthController extends Controller
+{
+    public function register(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = new User();
+        $user->name = $data['name'];
+        $user->email = $data['email'];
+        $user->password = Hash::make($data['password']);
+        $user->save();
+
+        return redirect()
+            ->route('login')
+            ->with('success', 'Account created successfully. Please log in.');
+    }
+
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        if (!Auth::attempt($credentials)) {
+            return back()
+                ->withErrors([
+                    'email' => 'Email or password is incorrect.',
+                ])
+                ->onlyInput('email');
+        }
+
+        $request->session()->regenerate();
+
+        return redirect()->intended(route('dashboard'));
+    }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    }
+}
+```
+
+## 4. resources/views/auth/register.blade.php
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | IT Student Portal</title>
+</head>
+<body>
+    <h1>Create an Account</h1>
+
+    @if ($errors->any())
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    @endif
+
+    @if (session('success'))
+        <p>{{ session('success') }}</p>
+    @endif
+
+    <form method="POST" action="{{ route('register.store') }}">
+        @csrf
+
+        <label for="name">Full Name:</label>
+        <input
+            id="name"
+            name="name"
+            type="text"
+            value="{{ old('name') }}"
+            required
+            maxlength="255"
+        >
+        <br><br>
+
+        <label for="email">Email Address:</label>
+        <input
+            id="email"
+            name="email"
+            type="email"
+            value="{{ old('email') }}"
+            required
+            maxlength="255"
+        >
+        <br><br>
+
+        <label for="password">Password:</label>
+        <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minlength="8"
+            autocomplete="new-password"
+        >
+        <br><br>
+
+        <label for="password_confirmation">Confirm Password:</label>
+        <input
+            id="password_confirmation"
+            name="password_confirmation"
+            type="password"
+            required
+            minlength="8"
+            autocomplete="new-password"
+        >
+        <br><br>
+
+        <button type="submit">Register</button>
+    </form>
+
+    <p>
+        Already have an account?
+        <a href="{{ route('login') }}">Log in here</a>
+    </p>
+</body>
+</html>
+```
+
+## 5. resources/views/auth/login.blade.php
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | IT Student Portal</title>
+</head>
+<body>
+    <h1>IT Student Portal Login</h1>
+
+    @if ($errors->any())
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    @endif
+
+    @if (session('success'))
+        <p>{{ session('success') }}</p>
+    @endif
+
+    <form method="POST" action="{{ route('login.store') }}">
+        @csrf
+
+        <label for="email">Email Address:</label>
+        <input
+            id="email"
+            name="email"
+            type="email"
+            value="{{ old('email') }}"
+            required
+            autocomplete="email"
+        >
+        <br><br>
+
+        <label for="password">Password:</label>
+        <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            autocomplete="current-password"
+        >
+        <br><br>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <p>
+        Do not have an account?
+        <a href="{{ route('register') }}">Register here</a>
+    </p>
+</body>
+</html>
+```
+
+## 6. resources/views/dashboard.blade.php
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | IT Student Portal</title>
+</head>
+<body>
+    <h1>IT Student Portal</h1>
+
+    <h2>Welcome, {{ auth()->user()->name }}!</h2>
+
+    <p>
+        <strong>Email:</strong>
+        {{ auth()->user()->email }}
+    </p>
+
+    <p>You have successfully logged in.</p>
+
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>
+```
+
+## 7. .env Database Configuration
+
+Set these values in your existing `.env` file. Do not replace the entire file.
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=it_auth_lab
+DB_USERNAME=root
+DB_PASSWORD=
+
+SESSION_DRIVER=file
+```
+
+If your MySQL installation has a password, enter it after `DB_PASSWORD=`.
+
+## 8. .gitignore
+
+Ensure your `.gitignore` excludes private settings and dependencies:
+
+```gitignore
+/vendor
+/node_modules
+/public/build
+/public/hot
+/storage/*.key
+.env
+.env.*
+!.env.example
+.phpunit.result.cache
+```
+
+Keep the other necessary entries already present in your Laravel `.gitignore`.
+
+## 9. README.md
+
+```markdown
+# Laravel 12 Authentication Lab - IT Student Portal
+
+**Student Name:** Mohammad Amin  
+**Father's Name:** Mohammad Rahim
+
+## Project Overview
+
+This project is a simple IT Student Portal built with Laravel 12.
+Users can register, log in, access a protected dashboard, and log out.
+
+## Features
+
+- User registration
+- Form validation
+- Password hashing
+- User login and logout
+- Protected dashboard
+- Session regeneration
+- CSRF protection
+- Named routes
+
+## Technologies
+
+- Laravel 12
+- PHP 8.2 or later
+- MySQL
+- Blade Templates
+- Composer
+
+## Installation
+
+1. Install dependencies:
+
+   composer install
+
+2. Create a MySQL database named `it_auth_lab`.
+
+3. Configure the `.env` file.
+
+4. Clear configuration cache:
+
+   php artisan config:clear
+
+5. Run migrations:
+
+   php artisan migrate
+
+6. Check routes:
+
+   php artisan route:list
+
+7. Start the development server:
+
+   php artisan serve
+
+8. Open http://127.0.0.1:8000 in your browser.
+
+## Security
+
+Passwords are hashed before storage.
+The dashboard is protected by authentication middleware.
+POST forms include CSRF tokens.
+
+## Student Information
+
+Student Name: Mohammad Amin  
+Father's Name: Mohammad Rahim
+```
+
+## 10. Answers to Lab Questions
+
+### Question 1: Why do we use Hash::make()?
+
+**Answer:** We use `Hash::make()` to hash a password before storing it in the database. This prevents the password from being stored as plain text. Laravel verifies the entered password against the stored hash during login.
+
+### Question 2: How does auth middleware protect the dashboard?
+
+**Answer:** The `auth` middleware checks whether a user is authenticated. If the user is not logged in, Laravel prevents access to the protected dashboard and redirects the user to the login page.
+
+### Question 3: What does @csrf add to a form?
+
+**Answer:** The `@csrf` directive adds a CSRF security token to the form. Laravel validates the token when the form is submitted to help prevent cross-site request forgery attacks.
+
+## 11. Testing Checklist
+
+- [ ] Open `/dashboard` while logged out and verify the redirect to login.
+- [ ] Register a new user with valid details.
+- [ ] Try registering with an existing email address.
+- [ ] Try a password shorter than eight characters.
+- [ ] Try mismatched password and confirmation fields.
+- [ ] Log in with the correct email and password.
+- [ ] Try logging in with an incorrect password.
+- [ ] Verify the dashboard displays the logged-in user's name and email.
+- [ ] Log out and try opening `/dashboard` again.
+- [ ] Verify that a logged-in user cannot access the guest-only login or registration pages.
+```
+
+## 12. Run the Project
+
+Start MySQL in XAMPP or your installed MySQL service, and make sure the `it_auth_lab` database exists. Then run these commands from the folder containing the `artisan` file:
+
+```bash
+php artisan config:clear
+php artisan migrate
+php artisan route:list
+php artisan serve
+```
+
+Open this address in your browser:
+
+```text
+http://127.0.0.1:8000
+```
+
+## 13. Upload the Project to GitHub
+
+Create a repository named `laravel-it-student-portal` at https://github.com/new. Then run these commands from your project folder:
+
+```bash
+git init
+git add .
+git commit -m "Complete Laravel authentication lab"
+git branch -M main
+git remote add origin https://github.com/YOUR-USERNAME/laravel-it-student-portal.git
+git push -u origin main
+```
+
+Replace `YOUR-USERNAME` with your GitHub username. If you already have a remote named `origin`, check it with `git remote -v` instead of adding it again.
+
+**Important:** Never upload `.env`, passwords, or private keys to GitHub. This code is intended to be placed inside an existing Laravel 12 installation; it is not a replacement for the entire Laravel framework or its dependencies.
